@@ -46,6 +46,16 @@
     </div>
 
     <div class="form-group">
+        <label for="patientName">اسم المريض:</label>
+        <input type="text" id="patientName" placeholder="أدخل اسم المريض الرباعي">
+    </div>
+
+    <div class="form-group">
+        <label for="medicalId">الرقم الطبي الموحد (ID / MRN):</label>
+        <input type="text" id="medicalId" placeholder="أدخل الرقم الطبي للمريض">
+    </div>
+
+    <div class="form-group">
         <label for="department">اختر القسم:</label>
         <select id="department" onchange="updateProcedures()">
             <option value="">-- اختر القسم --</option>
@@ -95,8 +105,8 @@
 </div>
 
 <script>
-    // ضع الرابط الخاص بجوجل سكريبت هنا بين علامتي التنصيص
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwPFy2NVMKCyZzfOVxn7zVcUogW0k0DYbBulsZFUK-5BNRc9cdZh06km6KuZDdeYYd3/exec";
+    // رابط Google Script الخاص بك (جاهز ومفعل)
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw5M58rLnDIVFnQBlbR5kh8GgZK6THLk2cSrqQtNE-XfmlVffhtn1lmQyuogfKAL7Eo/exec";
 
     const procedures = {
         obs_gyn: [
@@ -139,6 +149,8 @@
     function calculateProtocol() {
         const docName = document.getElementById("doctorName").value;
         const nurseName = document.getElementById("nurseName").value;
+        const patientName = document.getElementById("patientName").value;
+        const medicalId = document.getElementById("medicalId").value;
         const dept = document.getElementById("department").value;
         const proc = document.getElementById("procedure").value;
         const ageCat = document.getElementById("ageCategory").value;
@@ -146,9 +158,9 @@
         const allergy = document.getElementById("allergy").checked;
         const mrsa = document.getElementById("mrsa").checked;
 
-        // إجبار الطبيب على تعبئة أسمائهم قبل الحساب
-        if (!docName || !nurseName || !dept || !proc || isNaN(weight)) {
-            alert("يرجى إكمال جميع البيانات (اسم الطبيب، اسم الممرض، القسم، العملية، الوزن بدقة).");
+        // إجبار الطبيب على تعبئة جميع البيانات قبل الحساب
+        if (!docName || !nurseName || !patientName || !medicalId || !dept || !proc || isNaN(weight)) {
+            alert("يرجى إكمال جميع البيانات أولاً (اسم الطبيب، الممرض، المريض، الرقم الطبي، العملية، والوزن).");
             return;
         }
 
@@ -254,11 +266,17 @@
     function displayResult(htmlContent) {
         document.getElementById("antibioticResult").innerHTML = htmlContent;
         document.getElementById("resultBox").style.display = "block";
+        // إعادة تعيين الزر في حال تم الحساب من جديد
+        const btn = document.getElementById("submitBtn");
+        btn.innerHTML = "نسخ الطلب وتوثيقه في السجل";
+        btn.style.backgroundColor = "#28a745";
     }
 
-function submitAndCopy() {
+    function submitAndCopy() {
         const docName = document.getElementById("doctorName").value;
         const nurseName = document.getElementById("nurseName").value;
+        const patientName = document.getElementById("patientName").value;
+        const medicalId = document.getElementById("medicalId").value;
         const procText = document.getElementById("procedure").options[document.getElementById("procedure").selectedIndex].text;
         const weight = document.getElementById("weight").value;
         const resultHTML = document.getElementById("antibioticResult").innerHTML;
@@ -271,30 +289,31 @@ function submitAndCopy() {
         const dataPayload = {
             doctorName: docName,
             nurseName: nurseName,
+            patientName: patientName,
+            medicalId: medicalId,
             procedureText: procText,
             weight: weight,
             protocol: cleanText
         };
 
-        // --- التعديل تم هنا (تم حذف شرط If وإرسال البيانات مباشرة) ---
+        // إرسال البيانات مباشرة
         btn.innerHTML = "جاري التوثيق والنسخ...";
         btn.style.backgroundColor = "#ffc107"; // تغيير لون الزر للانتظار
         
         fetch(GOOGLE_SCRIPT_URL, {
             method: 'POST',
-            mode: 'no-cors', // هذا الأمر يمنع المتصفح من حظر الإرسال
+            mode: 'no-cors',
             body: JSON.stringify(dataPayload),
             headers: {
                 'Content-Type': 'text/plain;charset=utf-8'
             }
         }).then(() => {
-            btn.innerHTML = "نسخ الطلب وتوثيقه في السجل";
-            btn.style.backgroundColor = "#28a745";
+            btn.innerHTML = "تم التوثيق بنجاح ✓";
+            btn.style.backgroundColor = "#17a2b8";
         }).catch(error => console.error('Error!', error.message));
-        // ---------------------------------------------------------
 
         // نسخ النص المنسق للحافظة (Clipboard) ليقوم الطبيب بإرساله لك
-        const textToCopy = `*طلب اعتماد مضاد حيوي (العلمين النموذجي)*\nالطبيب: د. ${docName}\nالممرض/ة: ${nurseName}\nالعملية: ${procText}\nالوزن: ${weight} كجم\n\n*البروتوكول المختار:*\n${cleanText}\n\nتم إرسال نسخة للتوثيق في سجل العمليات. يرجى الاعتماد.`;
+        const textToCopy = `*طلب اعتماد مضاد حيوي (العلمين النموذجي)*\nالطبيب: د. ${docName}\nالممرض/ة: ${nurseName}\nالمريض: ${patientName}\nالرقم الطبي: ${medicalId}\nالعملية: ${procText}\nالوزن: ${weight} كجم\n\n*البروتوكول المختار:*\n${cleanText}\n\nتم إرسال نسخة للتوثيق في سجل العمليات. يرجى الاعتماد.`;
         
         navigator.clipboard.writeText(textToCopy).then(() => {
             alert("تم إرسال الطلب بنجاح إلى سجل العمليات وتم نسخ النص! يمكنك الآن لصق وإرسال الطلب للصيدلي الإكلينيكي.");
