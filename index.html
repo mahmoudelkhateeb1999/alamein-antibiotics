@@ -6,22 +6,23 @@
     <title>Alamein Hospital - Antibiotic Protocol</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; }
-        .container { max-width: 600px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        .header { text-align: center; border-bottom: 2px solid #0056b3; padding-bottom: 10px; margin-bottom: 20px; }
+        .container { max-width: 650px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .header { text-align: center; border-bottom: 2px solid #0056b3; padding-bottom: 15px; margin-bottom: 20px; }
         .header h1 { color: #0056b3; font-size: 24px; margin: 0; }
         .header p { color: #666; font-size: 14px; margin: 5px 0 0 0; }
         .form-group { margin-bottom: 15px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; }
-        select, input[type="number"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; box-sizing: border-box; }
-        .checkbox-group { display: flex; align-items: center; }
-        .checkbox-group input { width: auto; margin-left: 10px; transform: scale(1.5); }
-        button { width: 100%; padding: 12px; background-color: #0056b3; color: white; border: none; border-radius: 5px; font-size: 18px; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; color: #0056b3; }
+        select, input[type="number"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 15px; box-sizing: border-box; }
+        .checkbox-group { display: flex; align-items: center; margin-bottom: 10px; background: #f9f9f9; padding: 10px; border-radius: 5px;}
+        .checkbox-group input { width: auto; margin-left: 10px; transform: scale(1.3); }
+        button { width: 100%; padding: 12px; background-color: #0056b3; color: white; border: none; border-radius: 5px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 15px; transition: 0.3s; }
         button:hover { background-color: #004494; }
-        .result-box { display: none; margin-top: 20px; padding: 15px; background-color: #e9f5e9; border: 1px solid #28a745; border-radius: 5px; }
-        .result-box h3 { margin-top: 0; color: #28a745; }
-        .copy-btn { background-color: #28a745; margin-top: 15px; }
+        .result-box { display: none; margin-top: 25px; padding: 20px; background-color: #e9f5e9; border: 2px solid #28a745; border-radius: 8px; }
+        .result-box h3 { margin-top: 0; color: #155724; border-bottom: 1px solid #c3e6cb; padding-bottom: 10px;}
+        .result-text { font-size: 16px; line-height: 1.6; color: #155724; }
+        .copy-btn { background-color: #28a745; margin-top: 20px; }
         .copy-btn:hover { background-color: #218838; }
-        .alert { color: #dc3545; font-weight: bold; }
+        .alert { color: #721c24; background-color: #f8d7da; padding: 10px; border-radius: 5px; border: 1px solid #f5c6cb; font-weight: bold; display: block;}
     </style>
 </head>
 <body>
@@ -38,6 +39,7 @@
             <option value="">-- اختر القسم --</option>
             <option value="obs_gyn">النساء والتوليد (Obs & Gyn)</option>
             <option value="ortho">جراحة العظام (Orthopedics)</option>
+            <option value="gen_surg">الجراحة العامة (General Surgery)</option>
         </select>
     </div>
 
@@ -49,35 +51,58 @@
     </div>
 
     <div class="form-group">
+        <label for="ageCategory">الفئة العمرية:</label>
+        <select id="ageCategory">
+            <option value="adult">بالغ (Adult > 18 years)</option>
+            <option value="pediatric">طفل (Pediatric 1-18 years)</option>
+        </select>
+    </div>
+
+    <div class="form-group">
         <label for="weight">وزن المريض (كجم):</label>
-        <input type="number" id="weight" placeholder="أدخل الوزن بالكيلوجرام">
+        <input type="number" id="weight" placeholder="أدخل الوزن بالكيلوجرام الدقيق">
     </div>
 
-    <div class="form-group checkbox-group">
+    <div class="checkbox-group">
         <input type="checkbox" id="allergy">
-        <label for="allergy" style="margin:0;">المريض يعاني من حساسية البنسلين/السيفالوسبورين</label>
+        <label for="allergy" style="margin:0; color:#333;">المريض يعاني من حساسية البنسلين/السيفالوسبورين</label>
+    </div>
+    
+    <div class="checkbox-group" id="mrsaGroup">
+        <input type="checkbox" id="mrsa">
+        <label for="mrsa" style="margin:0; color:#333;">وجود خطر بكتيريا MRSA (أو تنويم أكثر من 5 أيام)</label>
     </div>
 
-    <button onclick="calculateProtocol()">عرض البروتوكول</button>
+    <button onclick="calculateProtocol()">عرض البروتوكول والجرعات</button>
 
     <div id="resultBox" class="result-box">
         <h3>البروتوكول الموصى به:</h3>
-        <p id="antibioticResult"></p>
+        <div id="antibioticResult" class="result-text"></div>
         <button class="copy-btn" onclick="copyForApproval()">نسخ الطلب لاعتماد الصيدلي الإكلينيكي</button>
     </div>
 </div>
 
 <script>
-    // القوائم المنسدلة للعمليات حسب القسم
     const procedures = {
         obs_gyn: [
             { value: "hysterectomy", text: "استئصال الرحم (Hysterectomy)" },
             { value: "c_section", text: "ولادة قيصرية (Cesarean Section)" },
-            { value: "no_antibiotic", text: "منظار تشخيصي / تركيب لولب (Diagnostic / IUD)" }
+            { value: "no_antibiotic", text: "منظار تشخيصي / تركيب لولب (Diagnostic Laparoscopy / IUD)" }
         ],
         ortho: [
-            { value: "joint_replacement", text: "تغيير مفصل (Total Joint Replacement)" },
-            { value: "open_fracture_1", text: "كسر مفتوح درجة أولى/ثانية (Open Fracture I or II)" }
+            { value: "joint_replacement", text: "تغيير مفصل كامل (Total Joint Replacement)" },
+            { value: "internal_fixation", text: "تثبيت داخلي للعظام الكبيرة (Internal fixation of large bones)" },
+            { value: "open_fracture_1_2", text: "كسر مفتوح درجة 1 أو 2 (Open Fracture Type I/II)" },
+            { value: "open_fracture_3", text: "كسر مفتوح درجة 3 (Open Fracture Type III)" },
+            { value: "amputation", text: "بتر طرف سفلي (Lower limb amputation)" },
+            { value: "clean_no_implant", text: "عمليات نظيفة بدون زرع / كسور مغلقة (Clean w/o implant)" }
+        ],
+        gen_surg: [
+            { value: "appendectomy", text: "استئصال الزائدة الدودية غير المعقدة (Uncomplicated Appendectomy)" },
+            { value: "colorectal", text: "جراحات القولون / دخول المسار الهضمي (Colorectal/GI entry)" },
+            { value: "biliary", text: "جراحات المرارة (Biliary Open or Laparoscopic)" },
+            { value: "hernia", text: "إصلاح فتق (Hernia Repair)" },
+            { value: "vascular", text: "جراحات الأوعية الدموية (Vascular Surgeries)" }
         ]
     };
 
@@ -99,65 +124,135 @@
     function calculateProtocol() {
         const dept = document.getElementById("department").value;
         const proc = document.getElementById("procedure").value;
-        const weight = document.getElementById("weight").value;
+        const ageCat = document.getElementById("ageCategory").value;
+        const weight = parseFloat(document.getElementById("weight").value);
         const allergy = document.getElementById("allergy").checked;
+        const mrsa = document.getElementById("mrsa").checked;
         const resultBox = document.getElementById("resultBox");
         const resultText = document.getElementById("antibioticResult");
 
-        if (!dept || !proc || !weight) {
-            alert("يرجى إكمال جميع البيانات (القسم، العملية، الوزن).");
+        if (!dept || !proc || isNaN(weight)) {
+            alert("يرجى إكمال جميع البيانات (القسم، العملية، الوزن بدقة).");
             return;
         }
 
         let recommendation = "";
+        let preOpDose = "";
+        let postOpDose = "";
+        let timing = "60 دقيقة قبل الشق الجراحي";
 
-        // تطبيق قواعد قسم النساء والتوليد
+        // Helper calculations
+        const cefaAdult = weight >= 120 ? "3 g IV" : "2 g IV";
+        const cefaPeds = Math.min(weight * 30, 2000) + " mg IV"; // Max 2g
+        const cefazolinDose = ageCat === "adult" ? cefaAdult : cefaPeds;
+        
+        const vancoAdult = weight > 80 ? "1.5 g IV infusion" : "1 g IV infusion";
+        const vancoPeds = (weight * 15) + " mg IV infusion";
+        const vancoDose = ageCat === "adult" ? vancoAdult : vancoPeds;
+
+        const gentaDose = (weight * 5) + " mg IV (Single Dose)";
+
+        // 1. Obs & Gyn Rules
         if (dept === "obs_gyn") {
             if (proc === "no_antibiotic") {
-                recommendation = "<span class='alert'>لا يُنصح باستخدام المضادات الحيوية الوقائية لهذه العملية.</span>";
-            } else if (proc === "hysterectomy") {
+                recommendation = "<span class='alert'>لا يُنصح باستخدام المضادات الحيوية الوقائية لهذه العملية حسب بروتوكول المستشفى.</span>";
+                return displayResult(recommendation);
+            } else if (proc === "hysterectomy" || proc === "c_section") {
                 if (allergy) {
-                    recommendation = "<b>Clindamycin PLUS Gentamicin</b><br>تنويه: جرعة الجنتاميسين بناءً على الوزن والوظائف الكلوية.";
+                    preOpDose = `<b>Clindamycin 900 mg IV</b> PLUS <b>Gentamicin ${gentaDose}</b>`;
                 } else {
-                    recommendation = weight >= 120 ? "<b>Cefazolin 3 g IV</b> كجرعة مفردة" : "<b>Cefazolin 2 g IV</b> كجرعة مفردة";
-                }
-            } else if (proc === "c_section") {
-                if (allergy) {
-                    recommendation = "<b>Clindamycin PLUS Gentamicin</b>";
-                } else {
-                    recommendation = weight >= 120 ? "<b>Cefazolin 3 g IV</b>" : "<b>Cefazolin 2 g IV</b>";
+                    preOpDose = `<b>Cefazolin ${cefazolinDose}</b> كجرعة مفردة`;
                 }
             }
         }
 
-        // تطبيق قواعد قسم العظام
+        // 2. Orthopedics Rules
         if (dept === "ortho") {
-            if (proc === "joint_replacement") {
+            if (proc === "clean_no_implant") {
+                recommendation = "<span class='alert'>لا حاجة لمضاد حيوي وقائي للعمليات النظيفة التي لا تتضمن زرع أجسام غريبة.</span>";
+                return displayResult(recommendation);
+            }
+            
+            if (proc === "joint_replacement" || proc === "internal_fixation") {
                 if (allergy) {
-                    recommendation = "<b>Vancomycin 1 g IV infusion</b> (أو 1.5 g إذا كان الوزن > 80 كجم)";
+                    preOpDose = `<b>Vancomycin ${vancoDose}</b>`;
+                    timing = "120 دقيقة قبل الشق الجراحي (للتسريب الوريدي)";
+                    postOpDose = "يُكرر Vancomycin بعد 12 ساعة من الجرعة الأولى (بحد أقصى 24 ساعة).";
                 } else {
-                    recommendation = "<b>Cefazolin 2 g IV</b> (للأطفال 30mg/kg حتى 2 جرام أقصى حد)";
+                    preOpDose = `<b>Cefazolin ${cefazolinDose}</b>`;
+                    if (mrsa) {
+                        preOpDose += `<br><b>مضافاً إليه Vancomycin ${vancoDose}</b> (بسبب خطر MRSA)`;
+                        timing = "يُبدأ التسريب للـ Vancomycin قبل ساعتين، وللسيفازولين قبل ساعة.";
+                    }
+                    postOpDose = "يُكرر Cefazolin كجرعة 1 جرام كل 8 ساعات لمدة لا تتجاوز 24 ساعة (أقصى حد 3 جرعات).";
                 }
-            } else if (proc === "open_fracture_1") {
-                recommendation = allergy ? "<b>Clindamycin</b>" : "<b>Cefazolin 2 g IV</b><br>لمدة 24 ساعة.";
+            }
+            else if (proc === "open_fracture_1_2") {
+                preOpDose = allergy ? "<b>Clindamycin 900 mg IV</b>" : `<b>Cefazolin ${cefazolinDose}</b>`;
+                postOpDose = "يستمر المضاد الحيوي لمدة 24 ساعة بعد العملية.";
+            }
+            else if (proc === "open_fracture_3") {
+                preOpDose = allergy ? "<b>Clindamycin 900 mg IV + Levofloxacin 500 mg IV</b>" : "<b>Ceftriaxone 2 g IV</b> (أضف Metronidazole 500mg في حال تلوث الجرح بتربة أو فضلات)";
+                postOpDose = "يستمر المضاد الحيوي لمدة 48 ساعة بعد إغلاق الجرح.";
+            }
+            else if (proc === "amputation") {
+                if (allergy || mrsa) {
+                    preOpDose = `<b>Vancomycin ${vancoDose}</b>`;
+                    timing = "120 دقيقة قبل الشق الجراحي";
+                } else {
+                    preOpDose = `<b>Cefazolin ${cefazolinDose}</b>`;
+                }
+                postOpDose = "في حال الإقفار (Ischemic limb)، يُضاف Metronidazole 500mg IV.";
             }
         }
 
-        recommendation += "<hr><b>طريقة الإعطاء:</b> خلال 60 دقيقة قبل الشق الجراحي (أو 120 دقيقة للـ Vancomycin).";
+        // 3. General Surgery Rules
+        if (dept === "gen_surg") {
+            if (proc === "appendectomy" || proc === "colorectal") {
+                if (allergy) {
+                    preOpDose = `<b>Clindamycin 900 mg IV</b> PLUS <b>Gentamicin ${gentaDose}</b>`;
+                } else {
+                    preOpDose = `<b>Cefazolin ${cefazolinDose}</b> PLUS <b>Metronidazole 500 mg IV</b>`;
+                }
+            }
+            else if (proc === "biliary") {
+                if (allergy) {
+                    preOpDose = `<b>Clindamycin 900 mg IV</b> PLUS <b>Gentamicin ${gentaDose}</b>`;
+                } else {
+                    preOpDose = `<b>Cefazolin ${cefazolinDose}</b>`;
+                }
+            }
+            else if (proc === "hernia" || proc === "vascular") {
+                preOpDose = allergy ? "<b>Clindamycin 900 mg IV</b>" : `<b>Cefazolin ${cefazolinDose}</b>`;
+            }
+        }
 
-        resultText.innerHTML = recommendation;
-        resultBox.style.display = "block";
+        recommendation = `
+            <b>الجرعة قبل العملية (Pre-operative):</b><br> ${preOpDose}<br><br>
+            <b>التوقيت:</b> ${timing}<br>
+            ${postOpDose ? `<br><b>ما بعد العملية (Post-operative):</b><br> ${postOpDose}` : ""}
+        `;
+
+        displayResult(recommendation);
+    }
+
+    function displayResult(htmlContent) {
+        document.getElementById("antibioticResult").innerHTML = htmlContent;
+        document.getElementById("resultBox").style.display = "block";
     }
 
     function copyForApproval() {
         const procText = document.getElementById("procedure").options[document.getElementById("procedure").selectedIndex].text;
         const weight = document.getElementById("weight").value;
-        const result = document.getElementById("antibioticResult").innerText;
+        const resultHTML = document.getElementById("antibioticResult").innerHTML;
         
-        const textToCopy = `طلب اعتماد مضاد حيوي (العلمين النموذجي)\nالعملية: ${procText}\nالوزن: ${weight} كجم\nالبروتوكول المختار:\n${result}\n\nيرجى الاعتماد من الصيدلية الإكلينيكية.`;
+        // تحويل الـ HTML إلى نص عادي لتسهيل نسخه للواتساب
+        let cleanText = resultHTML.replace(/<br\s*[\/]?>/gi, "\n").replace(/<[^>]+>/g, "");
+        
+        const textToCopy = `*طلب اعتماد مضاد حيوي (مستشفى العلمين النموذجي)*\nالعملية: ${procText}\nالوزن: ${weight} كجم\n\n*البروتوكول المختار:*\n${cleanText}\n\nيرجى الاعتماد من الصيدلية الإكلينيكية.`;
         
         navigator.clipboard.writeText(textToCopy).then(() => {
-            alert("تم نسخ الطلب بنجاح! يمكنك الآن إرساله للصيدلي الإكلينيكي عبر واتساب أو نظام المستشفى.");
+            alert("تم نسخ الطلب بنجاح! يمكنك الآن لصقه وإرساله للصيدلي الإكلينيكي عبر واتساب أو نظام المستشفى.");
         });
     }
 </script>
