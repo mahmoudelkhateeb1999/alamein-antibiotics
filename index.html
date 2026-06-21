@@ -8,11 +8,12 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; }
         .container { max-width: 650px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .header { text-align: center; border-bottom: 2px solid #0056b3; padding-bottom: 15px; margin-bottom: 20px; }
+        .header img { max-width: 100%; height: auto; max-height: 80px; margin-bottom: 15px; }
         .header h1 { color: #0056b3; font-size: 24px; margin: 0; }
         .header p { color: #666; font-size: 14px; margin: 5px 0 0 0; }
         .form-group { margin-bottom: 15px; }
         label { display: block; font-weight: bold; margin-bottom: 5px; color: #0056b3; }
-        select, input[type="number"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 15px; box-sizing: border-box; }
+        select, input[type="text"], input[type="number"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 15px; box-sizing: border-box; }
         .checkbox-group { display: flex; align-items: center; margin-bottom: 10px; background: #f9f9f9; padding: 10px; border-radius: 5px;}
         .checkbox-group input { width: auto; margin-left: 10px; transform: scale(1.3); }
         button { width: 100%; padding: 12px; background-color: #0056b3; color: white; border: none; border-radius: 5px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 15px; transition: 0.3s; }
@@ -29,8 +30,19 @@
 
 <div class="container">
     <div class="header">
+        <img src="logo.png" alt="لوجو مستشفى العلمين النموذجي">
         <h1>مستشفى العلمين النموذجي</h1>
         <p>البروتوكول الوقائي للمضادات الحيوية - قسم الصيدلة الإكلينيكية</p>
+    </div>
+
+    <div class="form-group">
+        <label for="doctorName">اسم الطبيب المعالج:</label>
+        <input type="text" id="doctorName" placeholder="أدخل اسم الطبيب">
+    </div>
+
+    <div class="form-group">
+        <label for="nurseName">اسم الممرض / الممرضة:</label>
+        <input type="text" id="nurseName" placeholder="أدخل اسم الممرض أو الممرضة">
     </div>
 
     <div class="form-group">
@@ -78,11 +90,14 @@
     <div id="resultBox" class="result-box">
         <h3>البروتوكول الموصى به:</h3>
         <div id="antibioticResult" class="result-text"></div>
-        <button class="copy-btn" onclick="copyForApproval()">نسخ الطلب لاعتماد الصيدلي الإكلينيكي</button>
+        <button class="copy-btn" id="submitBtn" onclick="submitAndCopy()">نسخ الطلب وتوثيقه في السجل</button>
     </div>
 </div>
 
 <script>
+    // ضع الرابط الخاص بجوجل سكريبت هنا بين علامتي التنصيص
+    const GOOGLE_SCRIPT_URL = "رابط_جوجل_هنا";
+
     const procedures = {
         obs_gyn: [
             { value: "hysterectomy", text: "استئصال الرحم (Hysterectomy)" },
@@ -122,17 +137,18 @@
     }
 
     function calculateProtocol() {
+        const docName = document.getElementById("doctorName").value;
+        const nurseName = document.getElementById("nurseName").value;
         const dept = document.getElementById("department").value;
         const proc = document.getElementById("procedure").value;
         const ageCat = document.getElementById("ageCategory").value;
         const weight = parseFloat(document.getElementById("weight").value);
         const allergy = document.getElementById("allergy").checked;
         const mrsa = document.getElementById("mrsa").checked;
-        const resultBox = document.getElementById("resultBox");
-        const resultText = document.getElementById("antibioticResult");
 
-        if (!dept || !proc || isNaN(weight)) {
-            alert("يرجى إكمال جميع البيانات (القسم، العملية، الوزن بدقة).");
+        // إجبار الطبيب على تعبئة أسمائهم قبل الحساب
+        if (!docName || !nurseName || !dept || !proc || isNaN(weight)) {
+            alert("يرجى إكمال جميع البيانات (اسم الطبيب، اسم الممرض، القسم، العملية، الوزن بدقة).");
             return;
         }
 
@@ -141,9 +157,8 @@
         let postOpDose = "";
         let timing = "60 دقيقة قبل الشق الجراحي";
 
-        // Helper calculations
         const cefaAdult = weight >= 120 ? "3 g IV" : "2 g IV";
-        const cefaPeds = Math.min(weight * 30, 2000) + " mg IV"; // Max 2g
+        const cefaPeds = Math.min(weight * 30, 2000) + " mg IV"; 
         const cefazolinDose = ageCat === "adult" ? cefaAdult : cefaPeds;
         
         const vancoAdult = weight > 80 ? "1.5 g IV infusion" : "1 g IV infusion";
@@ -241,18 +256,49 @@
         document.getElementById("resultBox").style.display = "block";
     }
 
-    function copyForApproval() {
+    function submitAndCopy() {
+        const docName = document.getElementById("doctorName").value;
+        const nurseName = document.getElementById("nurseName").value;
         const procText = document.getElementById("procedure").options[document.getElementById("procedure").selectedIndex].text;
         const weight = document.getElementById("weight").value;
         const resultHTML = document.getElementById("antibioticResult").innerHTML;
-        
-        // تحويل الـ HTML إلى نص عادي لتسهيل نسخه للواتساب
+        const btn = document.getElementById("submitBtn");
+
+        // تحويل الـ HTML إلى نص نظيف
         let cleanText = resultHTML.replace(/<br\s*[\/]?>/gi, "\n").replace(/<[^>]+>/g, "");
         
-        const textToCopy = `*طلب اعتماد مضاد حيوي (مستشفى العلمين النموذجي)*\nالعملية: ${procText}\nالوزن: ${weight} كجم\n\n*البروتوكول المختار:*\n${cleanText}\n\nيرجى الاعتماد من الصيدلية الإكلينيكية.`;
+        // البيانات التي سيتم إرسالها إلى Google Sheets
+        const dataPayload = {
+            doctorName: docName,
+            nurseName: nurseName,
+            procedureText: procText,
+            weight: weight,
+            protocol: cleanText
+        };
+
+        // إرسال البيانات (تأكد من تعديل الرابط في الأعلى)
+        if (GOOGLE_SCRIPT_URL !== "https://script.google.com/macros/s/AKfycbziLTkndDOEHTjlqmoP0MW09ih5XGSZLmT7N8PgQ9w3fwCZ_VkllTyLLrJLo3Fd8oeq/exec") {
+            btn.innerHTML = "جاري التوثيق والنسخ...";
+            btn.style.backgroundColor = "#ffc107"; // تغيير لون الزر للانتظار
+            
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(dataPayload)
+            }).then(() => {
+                btn.innerHTML = "نسخ الطلب وتوثيقه في السجل";
+                btn.style.backgroundColor = "#28a745";
+            }).catch(error => console.error('Error!', error.message));
+        }
+
+        // نسخ النص المنسق للحافظة (Clipboard) ليقوم الطبيب بإرساله لك
+        const textToCopy = `*طلب اعتماد مضاد حيوي (العلمين النموذجي)*\nالطبيب: د. ${docName}\nالممرض/ة: ${nurseName}\nالعملية: ${procText}\nالوزن: ${weight} كجم\n\n*البروتوكول المختار:*\n${cleanText}\n\nتم إرسال نسخة للتوثيق في سجل العمليات. يرجى الاعتماد.`;
         
         navigator.clipboard.writeText(textToCopy).then(() => {
-            alert("تم نسخ الطلب بنجاح! يمكنك الآن لصقه وإرساله للصيدلي الإكلينيكي عبر واتساب أو نظام المستشفى.");
+            alert("تم إرسال الطلب بنجاح إلى سجل العمليات وتم نسخ النص! يمكنك الآن لصق وإرسال الطلب للصيدلي الإكلينيكي.");
         });
     }
 </script>
